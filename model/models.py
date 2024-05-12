@@ -38,13 +38,6 @@ class HGNN(nn.Module):
             conv.lin_n2e.weight.data += conv.lin_n2e.weight.data * torch.normal(0, noise_std, size=conv.lin_n2e.weight.size()).to(conv.lin_n2e.weight.device)
             conv.lin_e2n.weight.data += conv.lin_e2n.weight.data * torch.normal(0, noise_std, size=conv.lin_e2n.weight.size()).to(conv.lin_e2n.weight.device)
 
-            # uniform noise
-            # conv.lin_n2e.weight.data += conv.lin_n2e.weight.data * torch.rand(size=conv.lin_n2e.weight.size()).to(conv.lin_n2e.weight.device) * noise_std
-            # conv.lin_e2n.weight.data += conv.lin_e2n.weight.data * torch.rand(size=conv.lin_e2n.weight.size()).to(conv.lin_e2n.weight.device) * noise_std
-            
-            # poisson noise
-            # conv.lin_n2e.weight.data += conv.lin_n2e.weight.data * torch.poisson(torch.full(conv.lin_n2e.weight.size(), noise_std)).to(conv.lin_n2e.weight.device)
-            # conv.lin_e2n.weight.data += conv.lin_e2n.weight.data * torch.poisson(torch.full(conv.lin_e2n.weight.size(), noise_std)).to(conv.lin_e2n.weight.device)
     def forward(self, x: Tensor, hyperedge_index: Tensor, num_nodes: int, num_edges: int, dropout_rate: float, noise_std: float):
         for i in range(self.num_layers):
             if noise_std != 0.0:
@@ -100,18 +93,6 @@ class FG_HGCL(nn.Module):
         noise = torch.abs(torch.normal(0, std, size=feature.size())).to(self.device)
         noise_feature = torch.where(feature == 1, feature - noise, feature + noise)
         
-        # uniform noise
-        # noise = torch.rand(size=feature.size()).to(self.device) * std
-        # noise_feature = torch.where(feature == 1, feature - noise, feature + noise)
-        
-        # bernoulli noise
-        # noise = torch.bernoulli(torch.full(feature.size(), std)).to(self.device)
-        # noise_feature = torch.where(feature == 1, feature - noise, feature + noise)
-        
-        # poisson noise
-        # noise = torch.poisson(torch.full(feature.size(), std)).to(self.device)
-        # noise_feature = feature + noise
-        
         return noise_feature
 
     def f(self, x, tau):
@@ -137,7 +118,6 @@ class FG_HGCL(nn.Module):
             loss = self.semi_loss_batch(n1, n2, tau, overlab_hyperedge, batch_size)
         else:
             loss = self.semi_loss(n1, n2, tau, overlab_hyperedge)
-            # loss += self.semi_loss_batch(n2, n1, tau, overlab_hyperedge, w_wp, w_wn, batch_size, detail)
             
         loss = loss.mean() if mean else loss.sum()
         
@@ -169,18 +149,8 @@ class FG_HGCL(nn.Module):
                 pos_sim += (self.f(self.cosine_similarity(current_h1, h2[i, start_idx:end_idx]), tau) * diag_mask).sum(1)
             weak_pos_sim = (self_sim * (current_overlab_hyperedge > 0 & ~diag_mask) * current_overlab_hyperedge * current_weight_hyperedge).sum(1)
             
-            # no weak weight
-            # weak_pos_sim = (self_sim * (current_overlab_hyperedge > 0 & ~diag_mask) * current_overlab_hyperedge).sum(1)
-            
-            # no group contrastive
-            # weak_pos_sim = (self_sim * (current_overlab_hyperedge > 0 & ~diag_mask) * (current_overlab_hyperedge / current_overlab_hyperedge.diag())).sum(1)
-            
-            # no weak weight & no group contrastive
-            # weak_pos_sim = (self_sim * (current_overlab_hyperedge > 0 & ~diag_mask)).sum(1)
-            
             neg_sim = (self_sim * (current_overlab_hyperedge == 0)).sum(1)
             
-            # loss = -torch.log((pos_sim) / (pos_sim + neg_sim))
             loss = -torch.log((pos_sim + weak_pos_sim) / (pos_sim + weak_pos_sim + neg_sim))
             
             losses.append(loss)
@@ -196,16 +166,6 @@ class FG_HGCL(nn.Module):
         self_sim = self.f(self.cosine_similarity(n1, n1), tau)
         weak_pos_sim = (self_sim * (overlab_hyperedge > 0 & ~diag_mask) * overlab_hyperedge * (overlab_hyperedge / overlab_hyperedge.diag())).sum(1)
         
-        # no weak weight
-        # weak_pos_sim = (self_sim * (overlab_hyperedge > 0 & ~diag_mask) * overlab_hyperedge).sum(1)
-        
-        # no group contrastive
-        # weak_pos_sim = (self_sim * (overlab_hyperedge > 0 & ~diag_mask) * (overlab_hyperedge / overlab_hyperedge.diag())).sum(1)
-        
-        # no weak weight & no group contrastive
-        # weak_pos_sim = (self_sim * (overlab_hyperedge > 0 & ~diag_mask)).sum(1)
-        
         neg_sim = (self_sim * (overlab_hyperedge == 0)).sum(1)
         
-        # return -torch.log((pos_sim) / (pos_sim + neg_sim))
         return -torch.log((pos_sim + weak_pos_sim) / (pos_sim + weak_pos_sim + neg_sim))

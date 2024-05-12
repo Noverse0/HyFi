@@ -1,7 +1,5 @@
-import wandb
 import time
 import math
-
 import argparse
 import yaml
 import numpy as np
@@ -66,11 +64,7 @@ def node_classification_eval(model, data, params, seed, num_splits=20):
 
 
 def main():
-    wandb.init(project="hyfi_ablation", mode="online")
     params = yaml.safe_load(open('config.yaml'))[args.dataset]
-    tuning_params = wandb.config
-    params.update(tuning_params)
-    
     start = time.time()
     math.factorial(100000)
     
@@ -87,16 +81,9 @@ def main():
         encoder = HGNN(data.features.shape[1], params['hid_dim'], params['hid_dim'], params['num_layers'])
         model = FG_HGCL(encoder, params['proj_dim'], args.device).to(args.device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=params['lr'], weight_decay=params['weight_decay'])
-        wandb.watch(model, log='all')
         for epoch in tqdm(range(1, params['epochs'] + 1)):
             loss, model = train(data, model, optimizer, params, epoch)
-            wandb.log({"Epoch": epoch, "Loss": loss})
             
-            # if epoch < 51:
-            #     acc, nmi, f1 = node_classification_eval(model, data, params, seed)
-            #     acc_mean, acc_std = np.mean(acc, axis=0), np.std(acc, axis=0)
-            #     wandb.log({"Epoch": epoch,  "Loss": loss, "ACC": acc_mean[2], "NMI": nmi, "F1": f1})
-        
         # At the end of each seed iteration, record the memory usage
         gpu_memory_allocated.append(torch.cuda.memory_allocated(args.device))
         gpu_max_memory_allocated.append(torch.cuda.max_memory_allocated(args.device))
@@ -126,25 +113,6 @@ def main():
     avg_gpu_max_memory_allocated = sum(gpu_max_memory_allocated) / len(gpu_max_memory_allocated)
     print(f'Average allocated GPU memory: {avg_gpu_memory_allocated / (1024 ** 2):.2f} MB')
     print(f'Average peak allocated GPU memory: {avg_gpu_max_memory_allocated / (1024 ** 2):.2f} MB')    
-    
-    wandb.log({
-        "dataset": args.dataset,
-        "Train_Acc_Mean": accs_mean[0],
-        "Train_Acc_Std": accs_std[0],
-        "Valid_Acc_Mean": accs_mean[1],
-        "Valid_Acc_Std": accs_std[1],
-        "Test_Acc_Mean": accs_mean[2],
-        "Test_Acc_Std": accs_std[2],
-        "NMI_Mean": np.mean(nmis, axis=0),
-        "F1_Mean": np.mean(f1s, axis=0),
-        "Time": (end - start)/5,
-        "Average_GPU_Memory_Allocated_MB": avg_gpu_memory_allocated / (1024 ** 2),
-        "Average_GPU_Peak_Memory_Allocated_MB": avg_gpu_max_memory_allocated / (1024 ** 2),
-        "model": 'HyFi',
-        "ablation": "w/o_edge_loss",
-        "gpu": "A6000"
-    })
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('HyFi unsupervised learning.')
@@ -154,36 +122,4 @@ if __name__ == '__main__':
     parser.add_argument('--num_seeds', type=int, default=5)
     parser.add_argument('--device', type=int, default=0)
     args = parser.parse_args()
-    # main()
-    
-    sweep_configuration = {
-    "name": args.dataset,
-    "method": "grid",
-    "metric": {"goal": "maximize", "name": "Test_Acc_Mean"},
-    "parameters": {
-        "num_layers": {"values": [1]},
-        # "hid_dim": {"values": [128, 256, 512, 1024]},
-        # "proj_dim": {"values": [128, 256, 512, 1024]},
-        # "lr": {"values": [1.0e-03, 1.0e-04, 5.0e-03, 5.0e-04]},
-        # "epochs": {"values": [150, 200, 300]},
-        # "weight_decay": {"values": [1.0e-04, 1.0e-05]},
-        # "tau_n": {"values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]},
-        # "tau_g": {"values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8]},
-        "w_g": {"values": [0.0]},
-        # "eval_lr": {"values": [0.0001, 0.005, 0.001, 0.05, 0.01]},
-        # "eval_epochs": {"values": [50, 100, 150, 200, 300]},
-        # "dropout_rate": {"values": [0.1, 0.2, 0.3, 0.4, 0.5, 0.6]},
-        # "noise_std_n": {"values": [0.0]},
-        # "noise_std_n": {"values": [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]},
-        # "noise_std_e": {"values": [0.0, 0.1, 0.01, 0.001, 0.0001]},
-        # "batch_size1": {"values": [None]},
-        # "batch_size2": {"values": [None]},
-        # "num_views": {"values": [1,2,3,4,5]},
-        # "num_views": {"values": [0]},
-        },
-    }
-    
-    sweep_id = wandb.sweep(sweep=sweep_configuration, project="hyfi_ablation")
-    wandb.agent(sweep_id, main)
-    wandb.finish()
-    
+    main()
