@@ -12,7 +12,6 @@ cora:
   eval_epochs: 300
   dropout_rate: 0.4
   noise_std_n: 0.4
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -31,7 +30,6 @@ citeseer:
   eval_epochs: 100
   dropout_rate: 0.9
   noise_std_n: 0.2
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -50,7 +48,6 @@ pubmed:
   eval_epochs: 300
   dropout_rate: 0.5
   noise_std_n: 0.1
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -63,13 +60,12 @@ cora_coauthor:
   weight_decay: 5.0e-04
   tau_g: 0.5
   tau_n: 0.7
-  w_g: 1.0
+  w_g: 2.0
   epochs: 300
   eval_lr: 0.001
   eval_epochs: 300
   dropout_rate: 0.3
-  noise_std_n: 0.4
-  noise_std_e: 0.01
+  noise_std_n: 0.2
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -88,7 +84,6 @@ dblp_coauthor:
   eval_epochs: 100
   dropout_rate: 0.5
   noise_std_n: 0.3
-  noise_std_e: 0.0001
   batch_size1: 8192
   batch_size2: 4096
   num_views: 2
@@ -101,13 +96,12 @@ zoo:
   weight_decay: 1.0e-04
   tau_g: 0.1
   tau_n: 0.2
-  w_g: 0.5
+  w_g: 0.125
   epochs: 100
-  eval_lr: 0.005
-  eval_epochs: 300
+  eval_lr: 0.05
+  eval_epochs: 50
   dropout_rate: 0.0
   noise_std_n: 0.4
-  noise_std_e: 0.0001
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -126,7 +120,6 @@ zoo:
   eval_epochs: 300
   dropout_rate: 0.4
   noise_std_n: 0.7
-  noise_std_e: 0.001
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -145,7 +138,6 @@ Mushroom:
   eval_epochs: 300
   dropout_rate: 0.6
   noise_std_n: 0.4
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -164,7 +156,6 @@ NTU2012:
   eval_epochs: 100
   dropout_rate: 0.2
   noise_std_n: 0.1
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
@@ -183,7 +174,7 @@ ModelNet40:
   eval_epochs: 300
   dropout_rate: 0.2
   noise_std_n: 0.1
-  noise_std_e: 0.01
   batch_size1: null
   batch_size2: null
   num_views: 2
+  

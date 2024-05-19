@@ -31,24 +31,15 @@ class HGNN(nn.Module):
         for conv in self.convs:
             conv.reset_parameters()
             
-    def add_weight_noise(self, noise_std: float):
-        # weight에 가우시안 노이즈 추가
-        for conv in self.convs:
-            # gaussian noise
-            conv.lin_n2e.weight.data += conv.lin_n2e.weight.data * torch.normal(0, noise_std, size=conv.lin_n2e.weight.size()).to(conv.lin_n2e.weight.device)
-            conv.lin_e2n.weight.data += conv.lin_e2n.weight.data * torch.normal(0, noise_std, size=conv.lin_e2n.weight.size()).to(conv.lin_e2n.weight.device)
-
-    def forward(self, x: Tensor, hyperedge_index: Tensor, num_nodes: int, num_edges: int, dropout_rate: float, noise_std: float):
+    def forward(self, x: Tensor, hyperedge_index: Tensor, num_nodes: int, num_edges: int, dropout_rate: float):
         for i in range(self.num_layers):
-            if noise_std != 0.0:
-                self.add_weight_noise(noise_std)
-            x, e = self.convs[i](x, hyperedge_index, num_nodes, num_edges, dropout_rate, noise_std)
+            x, e = self.convs[i](x, hyperedge_index, num_nodes, num_edges, dropout_rate)
             x = self.act(x)
         return x, e # act, act
     
-class FG_HGCL(nn.Module):
+class HyFi(nn.Module):
     def __init__(self, encoder: HGNN, proj_dim: int, device):
-        super(FG_HGCL, self).__init__()
+        super(HyFi, self).__init__()
         self.encoder = encoder
         self.device = device
 
@@ -70,7 +61,7 @@ class FG_HGCL(nn.Module):
         self.fc2_e.reset_parameters()
         
     def forward(self, x: Tensor, hyperedge_index: Tensor, 
-                dropout_rate: Optional[float] = 0.0, noise_std_n: Optional[float] = 0.0, noise_std_e: Optional[float] = 0.0, aug_edge_num: Optional[int] = 0,
+                dropout_rate: Optional[float] = 0.0, noise_std_n: Optional[float] = 0.0,
                 num_nodes: Optional[int] = None, num_edges: Optional[int] = None):
         if num_nodes is None:
             num_nodes = int(hyperedge_index[0].max()) + 1
@@ -82,11 +73,11 @@ class FG_HGCL(nn.Module):
         self_loop = torch.stack([node_idx, edge_idx])
         self_loop_hyperedge_index = torch.cat([hyperedge_index, self_loop], 1)
         
-        if noise_std_e != 0.0:
+        if noise_std_n != 0.0:
             noise_x = self.add_gaussian_noise(x, noise_std_n)
-            n, e = self.encoder(noise_x, self_loop_hyperedge_index, num_nodes, num_edges + num_nodes, dropout_rate, noise_std_e)
+            n, e = self.encoder(noise_x, self_loop_hyperedge_index, num_nodes, num_edges + num_nodes, dropout_rate)
         else:
-            n, e = self.encoder(x, self_loop_hyperedge_index, num_nodes, num_edges + num_nodes, dropout_rate, noise_std_e)
+            n, e = self.encoder(x, self_loop_hyperedge_index, num_nodes, num_edges + num_nodes, dropout_rate)
         return n, e[:num_edges]
         
     def add_gaussian_noise(self, feature, std=0.1):

@@ -53,7 +53,7 @@ class ProposedConv(MessagePassing):
     
     def forward(self, x: Tensor, hyperedge_index: Tensor, 
                 num_nodes: Optional[int] = None, num_edges: Optional[int] = None, 
-                dropout_rate: Optional[float] = 0.0, noise_std: Optional[float] = 0.0):
+                dropout_rate: Optional[float] = 0.0):
 
         if num_nodes is None:
             num_nodes = x.shape[0]
@@ -67,16 +67,6 @@ class ProposedConv(MessagePassing):
             hyperedge_weight = x.new_ones(num_edges)
             hypernode_weight = x.new_ones(hyperedge_index.shape[1])
             
-            # noise를 생성해서 hyperedge_weight에 빼줌
-            # noise = torch.abs(torch.normal(mean=0.0, std=noise_std, size=(num_edges,))).to(x.device)
-            # noise = torch.normal(mean=0.0, std=noise_std, size=(num_edges,)).to(x.device)
-            # hyperedge_weight = hyperedge_weight - noise
-            
-            # hyperedge_index만큼 noise를 만들어서 hyperedge_weight에 concat해줌
-            # noise = torch.abs(torch.normal(mean=0.0, std=noise_std, size=(hyperedge_index[0].shape[0]-num_edges,))).to(x.device)
-            # noise = torch.normal(mean=0.0, std=noise_std, size=(hyperedge_index[0].shape[0]-num_edges,)).to(x.device)
-            # hyperedge_weight = torch.concat((hyperedge_weight, noise), dim=0)
-
             node_idx, edge_idx = hyperedge_index
             Dn = scatter_add(hyperedge_weight[hyperedge_index[1]],
                              hyperedge_index[0], dim=0, dim_size=num_nodes)
@@ -99,8 +89,6 @@ class ProposedConv(MessagePassing):
             norm_e2n = cache_norm_e2n
 
         x = self.lin_n2e(x)
-        # e = self.propagate(hyperedge_index, x=x, norm=norm_n2e, edge_weight=hyperedge_weight,
-        #                        size=(num_nodes, num_edges))  # Node to edge
         e = self.propagate(hyperedge_index, x=x, norm=norm_n2e,
                                size=(num_nodes, num_edges))  # Node to edge
 
@@ -110,8 +98,6 @@ class ProposedConv(MessagePassing):
         e = F.dropout(e, p=dropout_rate, training=self.training)
         
         x = self.lin_e2n(e)
-        # n = self.propagate(hyperedge_index.flip([0]), x=x, norm=norm_e2n, edge_weight=hyperedge_weight,
-        #                        size=(num_edges, num_nodes))  # Edge to node
         n = self.propagate(hyperedge_index.flip([0]), x=x, norm=norm_e2n,
                                size=(num_edges, num_nodes))  # Edge to node
 
