@@ -72,14 +72,14 @@ cora_coauthor:
 
 dblp_coauthor:
   num_layers: 1
-  hid_dim: 512
-  proj_dim: 512
+  hid_dim: 1024
+  proj_dim: 1024
   lr: 1.0e-03
   weight_decay: 5.0e-04
   tau_g: 0.2
   tau_n: 0.9
   w_g: 1.0
-  epochs: 300
+  epochs: 500
   eval_lr: 0.01
   eval_epochs: 100
   dropout_rate: 0.5
@@ -114,11 +114,11 @@ zoo:
   weight_decay: 1.0e-03
   tau_g: 0.4
   tau_n: 0.8
-  w_g: 0.5
+  w_g: 2.0
   epochs: 150
   eval_lr: 0.01
   eval_epochs: 300
-  dropout_rate: 0.4
+  dropout_rate: 0.1
   noise_std_n: 0.7
   batch_size1: null
   batch_size2: null
